@@ -1,22 +1,27 @@
 const $ = document.querySelector.bind(document);
 const $$ = document.querySelectorAll.bind(document);
 
+const PLAY_STORAGE_KEY = 'Long_Deptrai'
+
 const player = $('.player');
 const heading = $('header h2')
 const cdThumb = $('.cd-thumb')
 const cd = $('.cd')
 const audio = $('#audio')
-const playlist = $('.playlist')
 const playBtn = $('.btn-toggle-play')
 const progress = $('#progress')
 const nextBtn = $('.btn-next')
 const prevBtn = $('.btn-prev')
 const randomBtn = $('.btn-random')
+const repeatBtn = $('.btn-repeat')
+const playlist = $('.playlist')
 
 const app = {
    currentIndex:0,
    isRandom:false,
    isPlaying:false,
+   isRepeat:false,
+   config: JSON.parse(localStorage.getItem(PLAY_STORAGE_KEY)) || {},
    songs: [
     {
         name:'BoEmVaoBalo',
@@ -82,9 +87,9 @@ const app = {
         // Render playlist 
    
    render: function(){
-    const htmls = this.songs.map(song =>{
+    const htmls = this.songs.map((song,index) =>{
         return `
-        <div class="song">
+        <div class="song ${index === this.currentIndex ? 'active' : ''}" data-index = ${index} >
         <div class="thumb" style="background-image: url('${song.image}')">
         </div>
         <div class="body">
@@ -98,7 +103,7 @@ const app = {
         `
     })
 
-    $('.playlist').innerHTML = htmls.join('')
+    playlist.innerHTML = htmls.join('')
 
    },
         // định nghĩa các thuộc tính cho object
@@ -174,10 +179,12 @@ const app = {
        nextBtn.onclick= function(){
            if(_this.isRandom){
                _this.playRandomSong()
-           } else {
+            } else {
                _this.nextSong()
             }
            audio.play()
+           _this.render()
+           _this.scrollToActiveSong()
        }
         // khi prev bài hát
         prevBtn.onclick= function(){
@@ -192,8 +199,46 @@ const app = {
         randomBtn.onclick = function(e){    
             _this.isRandom = !_this.isRandom
             randomBtn.classList.toggle('active', _this.isRandom)
-           
         }
+        // xử lý lặp lại bài hát 
+        repeatBtn.onclick = function(e){
+            _this.isRepeat = !_this.isRepeat
+            repeatBtn.classList.toggle('active', _this.isRepeat)
+        }
+        // xử lý next khi audio end
+        audio.onended = function(){
+            if(_this.isRepeat){
+                audio.play()
+            } else {
+                nextBtn.click()
+            }
+        }
+        // lắng nghe click vào playlist khi
+        playlist.onclick = function(e){
+            const songNode = e.target.closest('.song:not(.active)')
+
+            if (songNode || e.target.closest('.option'))
+            {
+             // khi click vào bài hát   
+             if(songNode){
+                _this.currentIndex = Number(songNode.dataset.index)
+                _this.loadCurrentSong()
+                _this.render()
+                audio.play()
+             }
+             if(e.target.closest('.option')){
+
+             }
+            }
+        }
+   },
+   scrollToActiveSong: function(){
+       setTimeout( () =>{
+            $('.song.active').scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            })
+       },300)
    },
         // tải thông tin bài hát đầu tiên
 
